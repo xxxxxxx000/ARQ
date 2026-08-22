@@ -1,7 +1,8 @@
 {
-  "name": "opengym-root",
+  "name": "arq-root",
   "private": true,
   "scripts": {
+    "build": "cd frontend && npm install && npm run build",
     "start": "cmd /c start.bat"
   }
 }
