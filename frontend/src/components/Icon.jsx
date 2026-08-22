@@ -13,6 +13,9 @@
 //   · geometry snapped to .5 so it lands on pixel edges at 24px
 
 const P = {
+  /* ---- brand ---- */
+  arq: <><path d="M12 3.2 4.2 19.8h3.8L12 10.4l4 9.4h3.8L12 3.2Z" /><path d="M7.4 15.2h9.2" /><path d="m14.2 15.2 4.2 5.2" /></>,
+  logo: <><polygon points="12,2 2,21 7,21 12,9 17,21 22,21" stroke="none" fill="currentColor" opacity="0.95" /><polygon points="12,7 18.5,21 14.5,21 12,14.5 9.5,21 5.5,21" stroke="none" fill="var(--bg, #09090b)" /><circle cx="12" cy="14.5" r="1.8" fill="currentColor" stroke="none" /></>,
   /* ---- navigation ---- */
   house: <path d="M3.5 10.7 12 3.8l8.5 6.9M5.9 9.4V19a1.4 1.4 0 0 0 1.4 1.4h9.4A1.4 1.4 0 0 0 18.1 19V9.4" />,
   calendar: <><rect x="3.4" y="5.2" width="17.2" height="15.4" rx="3.2" /><path d="M8.2 3.4v3.4M15.8 3.4v3.4M3.4 10.2h17.2" /></>,

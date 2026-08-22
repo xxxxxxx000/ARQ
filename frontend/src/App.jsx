@@ -10,6 +10,8 @@ import { useWakeLock } from './lib/wakelock.js'
 import { startFlow } from './sheets.jsx'
 import Icon from './components/Icon.jsx'
 import TabBar from './components/TabBar.jsx'
+import Sidebar from './components/Sidebar.jsx'
+import InstallPrompt from './components/InstallPrompt.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import Modals from './components/Modals.jsx'
 import Toast from './components/Toast.jsx'
@@ -30,9 +32,9 @@ bindUI(useUI)   // lets the shared controls open sheets without importing the st
 function applyPrefs(theme, accent) {
   const de = document.documentElement
   de.dataset.theme = theme === 'light' ? 'light' : 'dark'
-  de.dataset.accent = ACCENTS[accent] ? accent : 'lime'
+  de.dataset.accent = ACCENTS[accent] ? accent : 'gold'
   const meta = document.querySelector('meta[name="theme-color"]')
-  if (meta) meta.content = de.dataset.theme === 'light' ? '#f2f2f7' : '#000000'
+  if (meta) meta.content = de.dataset.theme === 'light' ? '#f6f5f1' : '#0a0a0c'
 }
 
 function Shell() {
@@ -53,39 +55,43 @@ function Shell() {
   const authed = user || isGuest
   if (!ready && !authed) return (
     <div id="app">
-      <div style={{ paddingTop: '44vh', display: 'flex', justifyContent: 'center', fontSize: 34, color: 'var(--label-3)' }}>
-        <Icon name="dumbbell" />
+      <div style={{ paddingTop: '44vh', display: 'flex', justifyContent: 'center', fontSize: 44, color: 'var(--acc)' }}>
+        <Icon name="arq" />
       </div>
     </div>
   )
 
   return (
-    <>
-      {/* keyed on the route: a view that throws is contained, and switching tabs
-          re-mounts the boundary, so the tab bar is always a way out */}
-      <div id="app" className="vfade" key={loc.pathname}>
-        <ErrorBoundary>
-          {!authed ? <Login /> : (
-            <Routes>
-              <Route path="/home" element={<Home />} />
-              <Route path="/plan" element={<Plan />} />
-              <Route path="/plan/r/:id" element={<RoutineEdit />} />
-              <Route path="/workout" element={<Workout />} />
-              <Route path="/stats" element={<Stats />} />
-              <Route path="/history" element={<History />} />
-              <Route path="/library" element={<Library />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
-              <Route path="*" element={<Navigate to="/home" replace />} />
-            </Routes>
-          )}
-        </ErrorBoundary>
+    <div className="app-layout">
+      {authed && <Sidebar onStart={startFlow} />}
+      <div className="app-main-viewport">
+        <InstallPrompt />
+        {/* keyed on the route: a view that throws is contained, and switching tabs
+            re-mounts the boundary, so the tab bar is always a way out */}
+        <div id="app" className="vfade" key={loc.pathname}>
+          <ErrorBoundary>
+            {!authed ? <Login /> : (
+              <Routes>
+                <Route path="/home" element={<Home />} />
+                <Route path="/plan" element={<Plan />} />
+                <Route path="/plan/r/:id" element={<RoutineEdit />} />
+                <Route path="/workout" element={<Workout />} />
+                <Route path="/stats" element={<Stats />} />
+                <Route path="/history" element={<History />} />
+                <Route path="/library" element={<Library />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
+                <Route path="*" element={<Navigate to="/home" replace />} />
+              </Routes>
+            )}
+          </ErrorBoundary>
+        </div>
       </div>
       <TabBar onStart={startFlow} />
       <RestTimer />
       <Modals />
       <Toast />
-    </>
+    </div>
   )
 }
 

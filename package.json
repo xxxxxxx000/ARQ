@@ -1,0 +1,7 @@
+{
+  "name": "opengym-root",
+  "private": true,
+  "scripts": {
+    "start": "cmd /c start.bat"
+  }
+}

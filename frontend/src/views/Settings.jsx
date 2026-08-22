@@ -12,6 +12,7 @@ import { DEMO, REPO } from '../lib/demo.js'
 import { MOBILE, shareExport, syncReminder } from '../lib/mobile.js'
 import { loadStarterPlan, confirmSheet, importFromApp } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
+import { triggerPWAInstall } from '../components/InstallPrompt.jsx'
 import { Section, Row, SelectRow, Switch, Segmented, Button, TextField } from '../components/ui.jsx'
 
 export default function Settings() {
@@ -26,7 +27,7 @@ export default function Settings() {
 
   const doExport = async () => {
     const json = JSON.stringify(S, null, 2)
-    const name = 'opengym-backup-' + todayISO() + '.json'
+    const name = 'arq-backup-' + todayISO() + '.json'
     // WKWebView can't download blob URLs — the native build hands the file to the share sheet.
     if (MOBILE) {
       try { await shareExport(json, name); toast(t('Backup exported')) } catch (e) { /* share sheet dismissed */ }
@@ -42,7 +43,7 @@ export default function Settings() {
     rd.onload = () => {
       try {
         const data = JSON.parse(rd.result)
-        if (!data.workouts || !data.routines) throw new Error('not an openGym backup')
+        if (!data.workouts || !data.routines) throw new Error('not an ARQ backup')
         confirmSheet({ title: t('Import backup?'), message: t('This replaces all current data with the backup file.'), confirmText: t('Import'), danger: true, onConfirm: () => { replaceState(Object.assign(JSON.parse(JSON.stringify(DEF)), data), true); toast(t('Backup imported')) } })
       } catch (e) { toast(t('Import failed: {0}', e.message)) }
     }
@@ -67,72 +68,99 @@ export default function Settings() {
   })
 
   return <div className="narrow">
-    <div className="hdr">
-      <button className="iconbtn" onClick={() => nav('/home')} aria-label={t('Home')}><Icon name="chevronLeft" /></button>
-      <div style={{ flex: 1, marginLeft: 10 }}><h1>{t('Settings')}</h1></div>
+    {/* Editorial Header */}
+    <div className="hdr" style={{ marginBottom: 18, alignItems: 'flex-start' }}>
+      <button className="iconbtn" onClick={() => nav('/home')} aria-label={t('Home')} style={{ width: 40, height: 40, marginRight: 4 }}>
+        <Icon name="chevronLeft" />
+      </button>
+      <div style={{ flex: 1 }}>
+        <div className="editorial-kicker">
+          <span>{t('Preferences & Account')}</span>
+        </div>
+        <div className="editorial-title">{t('Settings')}</div>
+      </div>
     </div>
 
-    {/* ---------- account (demo and mobile builds have nothing to sign in to) ---------- */}
-    <Section title={MOBILE ? t('Your data') : DEMO ? t('Demo') : t('Account')}>
+    {/* ARQ Sovereign Athlete Profile Card */}
+    <div className="arq-profile-card">
+      <div className="arq-profile-avatar">
+        {user ? user.name.slice(0, 2).toUpperCase() : 'ARQ'}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="arq-profile-name">{user ? user.name : t('Guest Athlete')}</div>
+        <div className="arq-profile-sub">
+          {user ? t('Passkey Sovereign Profile · Synced') : t('Local Browser Vault · Unsynced')}
+        </div>
+      </div>
+      {user ? (
+        <button className="iconbtn" onClick={() => confirmSheet({ title: t('Sign out?'), message: t('Your data is synced to your profile first, then cleared from this device.'), confirmText: t('Sign out'), danger: true, onConfirm: () => { signOut(); nav('/home') } })} aria-label={t('Sign out')} title={t('Sign out')}>
+          <Icon name="signOut" />
+        </button>
+      ) : webauthnOK() ? (
+        <Button size="xs" variant="tinted" icon="person" onClick={signInHere}>{t('Sign in')}</Button>
+      ) : null}
+    </div>
+
+    {/* ---------- account & security ---------- */}
+    <Section title={t('Account & Security')}>
       {MOBILE ? <>
-        <Row icon="lock" iconTint="var(--acc)" title={t('All data stays on this phone')} subtitle={t('No account, no cloud — back it up anytime with Export below.')} />
-        <Row icon="rocket" iconTint="var(--indigo)" title={t('Self-host openGym')} subtitle={t('Passkey sign-in, sync across your devices, your own data.')} accessory="chevron"
+        <Row icon="lock" title={t('All data stays on this phone')} subtitle={t('No account, no cloud — back it up anytime with Export below.')} />
+        <Row icon="rocket" title={t('Self-host ARQ')} subtitle={t('Passkey sign-in, sync across your devices, your own sovereign data.')} accessory="chevron"
           onClick={() => window.open(REPO, '_blank', 'noopener')} />
       </> : DEMO ? <>
-        <Row icon="sparkles" iconTint="var(--acc)" title={t('You’re in the demo')} subtitle={t('Example data, stored only in this browser — change anything you like.')} />
-        <Row icon="reset" iconTint="var(--blue)" title={t('Reset demo data')} accessory="chevron"
+        <Row icon="shield" title={t('You’re in the demo')} subtitle={t('Example data, stored only in this browser — change anything you like.')} />
+        <Row icon="reset" title={t('Reset demo data')} accessory="chevron"
           onClick={() => confirmSheet({ title: t('Reset demo data?'), message: t('Puts the example plan, workouts and weigh-ins back the way they started.'), confirmText: t('Reset'), onConfirm: () => { resetDemo(); nav('/home'); toast(t('Demo data reset')) } })} />
-        <Row icon="rocket" iconTint="var(--indigo)" title={t('Self-host openGym')} subtitle={t('Passkey sign-in, sync across your devices, your own data.')} accessory="chevron"
+        <Row icon="rocket" title={t('Self-host openGym')} subtitle={t('Passkey sign-in, sync across your devices, your own data.')} accessory="chevron"
           onClick={() => window.open(REPO, '_blank', 'noopener')} />
       </> : user ? <>
-        <Row icon="personCircle" iconTint="var(--grey)" title={user.name} subtitle={t('Signed in with passkey — data syncs to this profile.')} />
-        {user.admin && <Row icon="wrench" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
-        <Row icon="signOut" iconTint="var(--red)" title={t('Sign out')} danger onClick={() => confirmSheet({ title: t('Sign out?'), message: t('Your data is synced to your profile first, then cleared from this device.'), confirmText: t('Sign out'), danger: true, onConfirm: () => { signOut(); nav('/home') } })} />
-        <Row icon="shield" iconTint="var(--red)" title={t('Sign out everywhere')} subtitle={t('Ends this profile’s sessions on all your devices.')} danger onClick={signOutEverywhere} />
+        {user.admin && <Row icon="wrench" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
+        <Row icon="signOut" title={t('Sign out')} danger onClick={() => confirmSheet({ title: t('Sign out?'), message: t('Your data is synced to your profile first, then cleared from this device.'), confirmText: t('Sign out'), danger: true, onConfirm: () => { signOut(); nav('/home') } })} />
+        <Row icon="shield" title={t('Sign out everywhere')} subtitle={t('Ends this profile’s sessions on all your devices.')} danger onClick={signOutEverywhere} />
       </> : webauthnOK() ? <>
-        <Row icon="sparkles" iconTint="var(--acc)" title={t('Create passkey profile')} subtitle={t('Keeps your data safe and separate per person.')} accessory="chevron" onClick={registerHere} />
-        <Row icon="person" iconTint="var(--blue)" title={t('Sign in with passkey')} accessory="chevron" onClick={signInHere} />
+        <Row icon="person" title={t('Create passkey profile')} subtitle={t('Keeps your data safe and separate per person.')} accessory="chevron" onClick={registerHere} />
+        <Row icon="person" title={t('Sign in with passkey')} accessory="chevron" onClick={signInHere} />
       </> : (
-        <Row icon="lock" iconTint="var(--grey)" title={t('Passkeys not supported in this browser.')} />
+        <Row icon="lock" title={t('Passkeys not supported in this browser.')} />
       )}
     </Section>
-    {!user && !DEMO && !MOBILE && <p className="sect-f" style={{ marginTop: -18, marginBottom: 22 }}>{t('Guest mode — data lives only in this browser.')}</p>}
 
     {/* ---------- general ---------- */}
     <Section title={t('General')} footer={t('Note: switching units only changes the label — logged numbers are not converted.')}>
       <SelectRow
-        icon="globe" iconTint="var(--blue)" title={t('Language')}
+        icon="globe" title={t('Language')}
         value={S.lang || 'en'} onChange={v => update(s => { s.lang = v })}
         options={Object.entries(LANGS).map(([k, name]) => ({
           value: k, label: name,
           subtitle: INSTR_LANGS.includes(k) ? null : t("Exercise instructions aren't available in this language yet — they stay in English."),
         }))}
       />
-      <Row icon="scale" iconTint="var(--teal)" title={t('Weight unit')}>
+      <Row icon="scale" title={t('Weight unit')}>
         <Segmented className="seg-inline"
           options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]}
           value={S.unit} onChange={v => update(s => { s.unit = v })} />
       </Row>
+      {!MOBILE && (
+        <Row icon="download" title={t('Install ARQ App')} subtitle={t('Standalone app, fast launch & offline access')} accessory="chevron" onClick={() => triggerPWAInstall()} />
+      )}
     </Section>
 
     {/* ---------- during a workout ---------- */}
     <Section title={t('During a workout')} footer={wakeOK ? t('The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.') : null}>
-      <SelectRow icon="timer" iconTint="var(--orange)" title={t('Rest timer')}
+      <SelectRow icon="timer" title={t('Rest timer')}
         value={S.restSec} onChange={v => update(s => { s.restSec = v })}
         options={[60, 90, 120, 150, 180].map(v => ({ value: v, label: v + 's' }))} />
       {(wakeOK || !MOBILE) && (
-        <Row icon="sun" iconTint="var(--yellow)" title={t('Keep screen awake')}
+        <Row icon="sun" title={t('Keep screen awake')}
           subtitle={wakeOK ? null : t('Not supported in this browser.')}>
           <Switch checked={wakeOK && S.keepAwake !== false} disabled={!wakeOK}
             onChange={v => update(s => { s.keepAwake = v })} />
         </Row>
       )}
-      <Row icon="bell" iconTint="var(--pink)" title={t('Sounds')}>
+      <Row icon="bell" title={t('Sounds')}>
         <Switch checked={!!S.sound} onChange={v => update(s => { s.sound = v })} />
       </Row>
-      {/* Two names for the same judgement, so the column asks in the scale you already think in.
-          The (i) sits before the control — you read it on the way to the choice, not after it. */}
-      <Row icon="target" iconTint="var(--purple)" title={t('Effort per set')}>
+      <Row icon="target" title={t('Effort per set')}>
         <button className="helpbtn" aria-label={t('What are RIR and RPE?')} onClick={effortHelpSheet}><Icon name="info" /></button>
         <Segmented className="seg-inline"
           options={[{ value: 'none', label: t('Off') }, { value: 'rir', label: t('RIR') }, { value: 'rpe', label: t('RPE') }]}
@@ -144,7 +172,7 @@ export default function Settings() {
 
     {/* ---------- appearance ---------- */}
     <Section title={t('Appearance')} footer={DEMO || MOBILE ? undefined : t('synced with your profile')}>
-      <Row icon="moon" iconTint="var(--indigo)" title={t('Theme')}>
+      <Row icon="moon" title={t('Theme')}>
         <Segmented
           className="seg-inline"
           options={[{ value: 'dark', icon: 'moon', label: t('Dark') }, { value: 'light', icon: 'sun', label: t('Light') }]}
@@ -152,8 +180,7 @@ export default function Settings() {
           onChange={v => update(s => { s.theme = v })}
         />
       </Row>
-      {/* Purely how the muscle map is drawn — nothing else in the app reads this. */}
-      <Row icon="figureStrength" iconTint="var(--teal)" title={t('Body diagram')}>
+      <Row icon="figureStrength" title={t('Body diagram')}>
         <Segmented
           className="seg-inline"
           options={[{ value: 'male', label: t('Male') }, { value: 'female', label: t('Female') }]}
@@ -165,38 +192,36 @@ export default function Settings() {
         <span className="lrow-t">{t('Accent color')}</span>
         <div className="swatches">
           {Object.entries(ACCENTS).map(([k, c]) => (
-            <button key={k} className={'swatch' + ((S.accent || 'lime') === k ? ' on' : '')}
+            <button key={k} className={'swatch' + ((S.accent || 'gold') === k ? ' on' : '')}
               style={{ background: c }} onClick={() => update(s => { s.accent = k })} aria-label={k} />
           ))}
         </div>
       </div>
     </Section>
 
-    {/* ---------- data: fill it, bring things over, back it up, wipe it ---------- */}
-    <Section title={t('Data')}>
-      <Row icon="sparkles" iconTint="var(--acc)" title={t('Load starter plan (PPL)')} accessory="chevron" onClick={loadStarterPlan} />
-      <Row icon="shuffle" iconTint="var(--teal)" title={t('Import from another app')}
+    {/* ---------- data vault ---------- */}
+    <Section title={t('Data & Vault')}>
+      <Row icon="dumbbell" title={t('Load starter plan (PPL)')} accessory="chevron" onClick={loadStarterPlan} />
+      <Row icon="shuffle" title={t('Import from another app')}
         subtitle={t('FitNotes, Strong, Hevy — or body weight from Apple Health')}
         accessory="chevron" onClick={() => importRef.current.click()} />
-      <Row icon="upload" iconTint="var(--blue)" title={t('Import backup')} accessory="chevron" onClick={() => fileRef.current.click()} />
-      <Row icon="download" iconTint="var(--blue)" title={t('Export backup (JSON)')} accessory="chevron" onClick={doExport} />
-      <Row icon="trash" iconTint="var(--red)" title={t('Reset everything')} danger onClick={() => confirmSheet({ title: t('Reset everything?'), message: t('Deletes your plan, workouts and body weight on this device. This cannot be undone.'), confirmText: t('Delete everything'), danger: true, onConfirm: () => { replaceState(JSON.parse(JSON.stringify(DEF)), true); nav('/home'); toast(t('All data reset')) } })} />
+      <Row icon="upload" title={t('Import backup')} accessory="chevron" onClick={() => fileRef.current.click()} />
+      <Row icon="download" title={t('Export backup (JSON)')} accessory="chevron" onClick={doExport} />
+      <Row icon="trash" title={t('Reset everything')} danger onClick={() => confirmSheet({ title: t('Reset everything?'), message: t('Deletes your plan, workouts and body weight on this device. This cannot be undone.'), confirmText: t('Delete everything'), danger: true, onConfirm: () => { replaceState(JSON.parse(JSON.stringify(DEF)), true); nav('/home'); toast(t('All data reset')) } })} />
     </Section>
     <input ref={fileRef} type="file" accept=".json,application/json" style={{ display: 'none' }} onChange={doImport} />
-    {/* Reset after reading so picking the same file twice still fires onChange. */}
     <input ref={importRef} type="file" accept=".csv,.xml,text/csv,text/xml" style={{ display: 'none' }}
       onChange={ev => { const f = ev.target.files[0]; if (f) importFromApp(f); ev.target.value = '' }} />
 
-    {/* "Add to Home screen" makes no sense inside the native app */}
     {!MOBILE && <Section title={t('Tip')}>
-      <Row icon="lightbulb" iconTint="var(--yellow)"
+      <Row icon="lightbulb"
         title={IS_ANDROID ? t('In Chrome: ⋮ menu → Add to Home screen') : t('In Safari: Share → Add to Home Screen')}
-        subtitle={t('to install openGym as a full-screen app.') + ' ' + (user ? t('Your data syncs with your profile — sign in anywhere to see it.') : t('Guest data stays on this device — export a backup now and then!'))} />
+        subtitle={t('to install ARQ as a full-screen app.') + ' ' + (user ? t('Your data syncs with your profile — sign in anywhere to see it.') : t('Guest data stays on this device — export a backup now and then!'))} />
     </Section>}
 
-    <div className="dim small" style={{ textAlign: 'center', marginTop: 4, lineHeight: 1.6 }}>
-      openGym · {t('free & open source (AGPL v3)')}<br />
-      <a href="https://github.com/DuarteSantos8/openGym" target="_blank" rel="noopener">source code</a> · exercise data: hasaneyldrm/exercises-dataset (CC)
+    <div className="dim small" style={{ textAlign: 'center', marginTop: 8, lineHeight: 1.6 }}>
+      ARQ · {t('The Private Strength Suite')}<br />
+      <span style={{ opacity: 0.7 }}>Self-hosted & Zero Telemetry</span>
     </div>
   </div>
 }

@@ -27,10 +27,11 @@ export function registerCustom(list) {
 export const allExercises = st => [...(st.customEx || []), ...EXDB]
 
 // Media normally sits next to the app (img/ and gif/, mounted into the web container).
-// A build can point them somewhere else — the demo build pulls them off a CDN instead of
-// shipping ~140 MB of images into the deployment.
-const IMG_BASE = import.meta.env.VITE_IMG_BASE || 'img/'
-const GIF_BASE = import.meta.env.VITE_GIF_BASE || 'gif/'
+const DEFAULT_CDN_IMG = 'https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@7455efae41b330c265e7cd4b78dfa848e7ce5ebd/images/'
+const DEFAULT_CDN_GIF = 'https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@7455efae41b330c265e7cd4b78dfa848e7ce5ebd/videos/'
+
+const IMG_BASE = import.meta.env.VITE_IMG_BASE || DEFAULT_CDN_IMG
+const GIF_BASE = import.meta.env.VITE_GIF_BASE || DEFAULT_CDN_GIF
 export const imgSrc = ex => IMG_BASE + ex.img
 export const gifSrc = ex => GIF_BASE + ex.gif
 

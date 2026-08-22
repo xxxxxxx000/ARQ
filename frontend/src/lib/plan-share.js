@@ -59,7 +59,7 @@ export function buildPlanBundle(S, name) {
     .map(c => ({ id: c.id, n: c.n, bp: c.bp, ...(c.desc ? { desc: c.desc } : {}) }))
   const week = {}
   WEEK_ORDER.forEach(d => { if (S.week?.[d]) week[d] = S.week[d] })
-  return { opengym_plan: PLAN_FMT, exported: todayISO(), name: name || '', week, routines, customEx }
+  return { arq_plan: PLAN_FMT, opengym_plan: PLAN_FMT, exported: todayISO(), name: name || '', week, routines, customEx }
 }
 
 /**
@@ -73,8 +73,8 @@ export function buildPlanBundle(S, name) {
  */
 export function parsePlan(raw) {
   const data = typeof raw === 'string' ? JSON.parse(raw) : raw
-  if (!data || !data.opengym_plan || !Array.isArray(data.routines)) {
-    throw new Error(t('this isn’t an openGym plan file'))
+  if (!data || (!data.arq_plan && !data.opengym_plan) || !Array.isArray(data.routines)) {
+    throw new Error(t('this isn’t an ARQ plan file'))
   }
   const customEx = (Array.isArray(data.customEx) ? data.customEx : []).filter(c => c && c.id)
   const known = new Set(customEx.map(c => c.id))
@@ -251,7 +251,7 @@ export function planPrintHTML(S, owner) {
 </style></head>
 <body><div class="doc">
   <header>
-    <div class="kicker">openGym</div>
+    <div class="kicker">ARQ</div>
     <h1>${esc(t('Weekly Training Plan'))}</h1>
     ${sub ? `<div class="sub">${sub}</div>` : ''}
   </header>
@@ -259,7 +259,7 @@ export function planPrintHTML(S, owner) {
   ${weekHTML(S)}
   <h3 class="block">${esc(t('Routines'))}</h3>
   ${body}
-  <footer>${esc(t('Made with openGym'))} · opengym.duarte-santos.ch</footer>
+  <footer>${esc(t('Made with ARQ'))} · The Private Strength Suite</footer>
 </div></body></html>`
 }
 

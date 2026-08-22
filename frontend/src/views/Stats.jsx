@@ -195,14 +195,115 @@ export default function Stats() {
   if (showEff) exOpts.push({ value: 'effort', label: t('Effort') })
 
   return <>
-    <div className="hdr"><div><h1>{t('Stats')}</h1><div className="sub">{t('Progress & history')}</div></div>
-      <button className="iconbtn" onClick={() => nav('/history')} aria-label={t('History')}><Icon name="history" /></button></div>
+    {/* Editorial Header */}
+    <div className="hdr" style={{ marginBottom: 18, alignItems: 'flex-start' }}>
+      <div>
+        <div className="editorial-kicker">
+          <span>{t('Analytics & Performance')}</span>
+        </div>
+        <div className="editorial-title">{t('Stats')}</div>
+      </div>
+      <button className="iconbtn" onClick={() => nav('/history')} aria-label={t('History')} style={{ width: 40, height: 40 }}>
+        <Icon name="history" />
+      </button>
+    </div>
 
-    <div className="tiles">
-      <div className="tile"><div className="l"><Icon name="dumbbell" />{t('Workouts')}</div><div className="v">{S.workouts.length}</div></div>
-      <div className="tile"><div className="l"><Icon name="calendar" />{t('This month')}</div><div className="v">{monthW}</div></div>
-      <div className="tile"><div className="l"><Icon name="flame" />{t('Week streak')}</div><div className="v">{streakWeeks(S)}</div></div>
-      <div className="tile"><div className="l"><Icon name="scale" />{t('Weight 30d')}</div><div className="v" style={{ fontSize: 22, color: bwDelta30 === null ? 'inherit' : bwDeltaColor(bwDelta30, (lastBW(S) || {}).w || 0) }}>{bwDelta30 === null ? '—' : (bwDelta30 > 0 ? '+' : '') + fmtNum(bwDelta30) + ' ' + S.unit}</div></div>
+    {/* ARQ Tri-Ring Executive Performance Hub */}
+    <div className="telemetry-hub">
+      <div className="telemetry-top">
+        <div className="ring-container">
+          <svg className="ring-svg" viewBox="0 0 130 130">
+            {/* Background Tracks */}
+            <circle className="ring-bg" cx="65" cy="65" r="54" stroke="var(--acc)" />
+            <circle className="ring-bg" cx="65" cy="65" r="41" stroke="var(--orange)" />
+            <circle className="ring-bg" cx="65" cy="65" r="28" stroke="var(--teal)" />
+
+            {/* Active Foreground Rings */}
+            {/* Outer Ring: All-time Workouts */}
+            <circle className="ring-fg" cx="65" cy="65" r="54" stroke="var(--acc)"
+              strokeDasharray="339.29"
+              strokeDashoffset={339.29 * (1 - Math.min(1, Math.max(0.04, S.workouts.length / 16)))} />
+
+            {/* Middle Ring: Week Streak */}
+            <circle className="ring-fg" cx="65" cy="65" r="41" stroke="var(--orange)"
+              strokeDasharray="257.61"
+              strokeDashoffset={257.61 * (1 - Math.min(1, Math.max(0.04, streakWeeks(S) / 4)))} />
+
+            {/* Inner Ring: This Month */}
+            <circle className="ring-fg" cx="65" cy="65" r="28" stroke="var(--teal)"
+              strokeDasharray="175.93"
+              strokeDashoffset={175.93 * (1 - Math.min(1, Math.max(0.04, monthW / 8)))} />
+          </svg>
+
+          <div className="ring-center-stat">
+            <span className="ring-center-val">{S.workouts.length}</span>
+            <span className="ring-center-lbl">{t('LOGS')}</span>
+          </div>
+        </div>
+
+        <div className="telemetry-stats">
+          <div className="telemetry-row">
+            <div className="telemetry-icon-pill" style={{ background: 'color-mix(in srgb, var(--acc) 22%, transparent)', color: 'var(--acc)' }}>
+              <Icon name="dumbbell" />
+            </div>
+            <div className="telemetry-info">
+              <div className="telemetry-title">{t('Total Volume')}</div>
+              <div className="telemetry-sub">{S.workouts.length} {t('Sessions')}</div>
+            </div>
+            <div className="telemetry-val" style={{ color: 'var(--acc)' }}>
+              {fmtVol(S.workouts.reduce((acc, w) => acc + (w.vol || 0), 0), S.unit)}
+            </div>
+          </div>
+
+          <div className="telemetry-row">
+            <div className="telemetry-icon-pill" style={{ background: 'color-mix(in srgb, var(--orange) 22%, transparent)', color: 'var(--orange)' }}>
+              <Icon name="flame" />
+            </div>
+            <div className="telemetry-info">
+              <div className="telemetry-title">{t('Momentum')}</div>
+              <div className="telemetry-sub">{streakWeeks(S) > 0 ? t('{0} Wk Streak 🔥', streakWeeks(S)) : t('Ready to Train')}</div>
+            </div>
+            <div className="telemetry-val" style={{ color: 'var(--orange)' }}>
+              {streakWeeks(S)}<span style={{ fontSize: 11, fontWeight: 600 }}>wk</span>
+            </div>
+          </div>
+
+          <div className="telemetry-row">
+            <div className="telemetry-icon-pill" style={{ background: 'color-mix(in srgb, var(--teal) 22%, transparent)', color: 'var(--teal)' }}>
+              <Icon name="calendar" />
+            </div>
+            <div className="telemetry-info">
+              <div className="telemetry-title">{t('This Month')}</div>
+              <div className="telemetry-sub">{monthW} {t('Workouts Logged')}</div>
+            </div>
+            <div className="telemetry-val" style={{ color: 'var(--teal)' }}>
+              {monthW}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Horizon Quick Telemetry Chips */}
+    <div className="horizon-chips">
+      <div className="horizon-chip">
+        <span className="horizon-chip-lbl">{t('Workouts')}</span>
+        <span className="horizon-chip-val" style={{ color: 'var(--acc)' }}>{S.workouts.length}</span>
+      </div>
+      <div className="horizon-chip">
+        <span className="horizon-chip-lbl">{t('Month Pace')}</span>
+        <span className="horizon-chip-val" style={{ color: 'var(--teal)' }}>{monthW} / 8</span>
+      </div>
+      <div className="horizon-chip">
+        <span className="horizon-chip-lbl">{t('Week Streak')}</span>
+        <span className="horizon-chip-val" style={{ color: 'var(--orange)' }}>{streakWeeks(S)} {t('wks')}</span>
+      </div>
+      <div className="horizon-chip">
+        <span className="horizon-chip-lbl">{t('30D Weight')}</span>
+        <span className="horizon-chip-val" style={{ color: bwDelta30 === null ? 'var(--label)' : bwDeltaColor(bwDelta30, (lastBW(S) || {}).w || 0) }}>
+          {bwDelta30 === null ? '—' : (bwDelta30 > 0 ? '+' : '') + fmtNum(bwDelta30) + ' ' + S.unit}
+        </span>
+      </div>
     </div>
 
     <div className="card">
