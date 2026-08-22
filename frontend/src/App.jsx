@@ -32,7 +32,7 @@ bindUI(useUI)   // lets the shared controls open sheets without importing the st
 function applyPrefs(theme, accent) {
   const de = document.documentElement
   de.dataset.theme = theme === 'light' ? 'light' : 'dark'
-  de.dataset.accent = ACCENTS[accent] ? accent : 'gold'
+  de.dataset.accent = ACCENTS[accent] ? accent : 'blue'
   const meta = document.querySelector('meta[name="theme-color"]')
   if (meta) meta.content = de.dataset.theme === 'light' ? '#f6f5f1' : '#0a0a0c'
 }
@@ -61,29 +61,38 @@ function Shell() {
     </div>
   )
 
+  if (!authed) {
+    return (
+      <div className="login-root-container">
+        <InstallPrompt />
+        <Login />
+        <Modals />
+        <Toast />
+      </div>
+    )
+  }
+
   return (
     <div className="app-layout">
-      {authed && <Sidebar onStart={startFlow} />}
+      <Sidebar onStart={startFlow} />
       <div className="app-main-viewport">
         <InstallPrompt />
         {/* keyed on the route: a view that throws is contained, and switching tabs
             re-mounts the boundary, so the tab bar is always a way out */}
         <div id="app" className="vfade" key={loc.pathname}>
           <ErrorBoundary>
-            {!authed ? <Login /> : (
-              <Routes>
-                <Route path="/home" element={<Home />} />
-                <Route path="/plan" element={<Plan />} />
-                <Route path="/plan/r/:id" element={<RoutineEdit />} />
-                <Route path="/workout" element={<Workout />} />
-                <Route path="/stats" element={<Stats />} />
-                <Route path="/history" element={<History />} />
-                <Route path="/library" element={<Library />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
-                <Route path="*" element={<Navigate to="/home" replace />} />
-              </Routes>
-            )}
+            <Routes>
+              <Route path="/home" element={<Home />} />
+              <Route path="/plan" element={<Plan />} />
+              <Route path="/plan/r/:id" element={<RoutineEdit />} />
+              <Route path="/workout" element={<Workout />} />
+              <Route path="/stats" element={<Stats />} />
+              <Route path="/history" element={<History />} />
+              <Route path="/library" element={<Library />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
+              <Route path="*" element={<Navigate to="/home" replace />} />
+            </Routes>
           </ErrorBoundary>
         </div>
       </div>
